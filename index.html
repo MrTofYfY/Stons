@@ -47,6 +47,13 @@
             background: radial-gradient(circle, #ff0000 0%, #cc0000 50%, #990000 100%);
         }
 
+        .nuke-button.disabled {
+            cursor: not-allowed;
+            opacity: 0.9;
+            background: radial-gradient(circle, #ff0000 0%, #cc0000 50%, #990000 100%);
+            box-shadow: 0 0 150px #ff0000, inset 0 0 100px rgba(255, 0, 0, 0.5);
+        }
+
         .radiation-icon {
             font-size: 120px;
             color: #000;
@@ -59,41 +66,148 @@
             transform: rotate(180deg);
         }
 
-        /* Скрытый контейнер для YouTube плеера */
-        #youtube-player {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            opacity: 0;
-            pointer-events: none;
+        .nuke-button.disabled .radiation-icon {
+            color: #ff0000;
+            animation: spin 2s linear infinite;
         }
 
-        /* Экран блокировки после нажатия */
-        .lock-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(255, 200, 0, 0.1);
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 2s;
-            z-index: 1000;
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <button class="nuke-button" id="nukeButton">
+        <div class="radiation-icon">☢️</div>
+    </button>
+
+    <script>
+        const nukeButton = document.getElementById('nukeButton');
+        let audioActivated = false;
+        let audioElement = null;
+        
+        // Рабочие прямые ссылки на MP3 Rickroll
+        const audioSources = [
+            'https://files.catbox.moe/4a6gv3.mp3',
+            'https://files.catbox.moe/1p9zq7.mp3',
+            'https://cdn.discordapp.com/attachments/851632123180711966/1079222331063287848/rick.mp3'
+        ];
+
+        function initAudio() {
+            audioElement = new Audio();
+            audioElement.loop = true;
+            audioElement.volume = 1.0;
+            audioElement.preload = 'auto';
+            
+            // Добавляем несколько источников для надёжности
+            audioSources.forEach(src => {
+                const source = document.createElement('source');
+                source.src = src;
+                source.type = 'audio/mpeg';
+                audioElement.appendChild(source);
+            });
+            
+            document.body.appendChild(audioElement);
         }
 
-        .lock-screen.active {
-            opacity: 1;
+        async function playRickroll() {
+            if (!audioActivated && audioElement) {
+                audioActivated = true;
+                
+                // Меняем состояние кнопки
+                nukeButton.classList.add('disabled');
+                nukeButton.disabled = true;
+                document.body.style.cursor = 'not-allowed';
+                
+                // Воспроизводим звук
+                try {
+                    await audioElement.play();
+                    console.log('Звук запущен успешно');
+                } catch (error) {
+                    console.log('Ошибка воспроизведения:', error);
+                    // Если не сработало, пробуем через пользовательское взаимодействие
+                    nukeButton.onclick = async () => {
+                        try {
+                            await audioElement.play();
+                        } catch (e) {
+                            console.log('Вторая попытка не удалась');
+                        }
+                    };
+                }
+                
+                // Защита от остановки
+                setupProtection();
+                
+                // Анимация кнопки
+                startButtonAnimation();
+            }
         }
 
-        .warning {
-            position: absolute;
-            bottom: 20px;
-            left: 0;
-            width: 100%;
-            text-align: center;
-            color: #666;
-            font-family: monospace;
+        function setupProtection() {
+            // Блокируем клавиши управления медиа
+            document.addEventListener('keydown', (e) => {
+                const mediaKeys = [32, 75, 74, 76, 77]; // Space, K, J, L, M
+                if (mediaKeys.includes(e.keyCode)) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            }, true);
+
+            // Блокируем контекстное меню
+            document.addEventListener('contextmenu', (e) => e.preventDefault());
+
+            // Перезапускаем аудио если оно остановилось
+            setInterval(() => {
+                if (audioElement && audioElement.paused && audioActivated) {
+                    audioElement.play().catch(() => {
+                        // Пытаемся сбросить и начать заново
+                        audioElement.currentTime = 0;
+                        audioElement.play();
+                    });
+                }
+            }, 1000);
+        }
+
+        function startButtonAnimation() {
+            let scale = 1;
+            const pulse = () => {
+                scale = scale === 1 ? 0.98 : 1;
+                nukeButton.style.transform = `scale(${scale})`;
+            };
+            setInterval(pulse, 300);
+        }
+
+        // Инициализируем аудио при загрузке страницы
+        window.addEventListener('DOMContentLoaded', () => {
+            initAudio();
+            
+            // Назначаем обработчик клика
+            nukeButton.addEventListener('click', playRickroll);
+            
+            // Также запускаем при любом клике по странице (для обхода блокировок)
+            document.addEventListener('click', (e) => {
+                if (!audioActivated && e.target !== nukeButton) {
+                    playRickroll();
+                }
+            }, { once: true }); // Только один раз
+        });
+
+        // Пытаемся запустить сразу при загрузке (если браузер разрешает)
+        window.addEventListener('load', () => {
+            // Небольшая задержка для гарантированной загрузки
+            setTimeout(() => {
+                if (!audioActivated) {
+                    // Автозапуск если пользователь уже взаимодействовал со страницей
+                    if (document.hasFocus()) {
+                        playRickroll();
+                    }
+                }
+            }, 500);
+        });
+    </script>
+</body>
+</html>            font-family: monospace;
             font-size: 12px;
             opacity: 0.5;
         }
